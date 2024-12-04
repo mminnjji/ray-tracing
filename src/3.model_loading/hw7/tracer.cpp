@@ -140,6 +140,7 @@ int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc)
 	rc->t = root;
 	rc->normal = vunit(p->normal);
 	rc->m = p->m;
+	rc->tmax = root;
 	return (1);
 }
 
@@ -185,6 +186,7 @@ int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc) {
 			rc->p = ray_at(r, root);
 			rc->normal = vunit(vminus(rc->p, *(s->c)));
 			rc->m = s->m;
+			rc->tmax = root;
 			return(1);
 		}
 	}
@@ -198,16 +200,19 @@ int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, plane* pl, rec
 	int h2 = FALSE;
 	int h3 = FALSE;
 	int h4 = FALSE;
+	float tmp = 0;
 
 	h1 = raySphereIntersect(r, s1, rc);
 	h2 = raySphereIntersect(r, s2, rc);
 	// h3 = rayCylinderIntersect(r, cy, rc);
-	// h4 = rayPlaneIntersect(r, pl, rc);
+	h4 = rayPlaneIntersect(r, pl, rc);
 
 	if (h1 && !h2)
 		return (1);
 	else if (h2 && !h1)
 		return (2);
+	else if (h4)
+		return (3);
 	// if ((h1 && h2 && h1 <= h2) || (h1 && !h2))
 	// 	return (1);
 	// else if ((h1 && h2 && h2 <= h1) || (h2 && !h1))
@@ -225,13 +230,13 @@ void tracer::findSphereNormal(sphere* s, point* p, vector* n) {
 	n->w = 0.0;
 }
 
-// void tracer::findPlaneNormal(plane* p, vector* n) {
-// 	n->x = p->normal.x;
-// 	n->y = p->normal.y;
-// 	n->z = p->normal.z;
-// 	n->w = 0.0;
-// 	n = &(vunit(*n));
-// }
+void tracer::findPlaneNormal(plane* p, vector* n) {
+	n->x = p->normal.x;
+	n->y = p->normal.y;
+	n->z = p->normal.z;
+	n->w = 0.0;
+	n = &(vunit(*n));
+}
 
 /* trace */
 /* If something is hit, returns the finite intersection point p,
@@ -259,12 +264,12 @@ void tracer::trace(ray* r, point* p, vector* n, material** m) {
 		findSphereNormal(s2, p, n);
 		//n = &(record->normal);
 	}
-	// else if (hit == 3) {
-	// 	*m = record->m;
-	// 	findPointOnRay(r, record->t, p);
-	// 	findPlaneNormal(pl, n);
-	// 	//n = &(record->normal);
-	// }
+	else if (hit == 3) {
+		*m = record->m;
+		findPointOnRay(r, record->t, p);
+		findPlaneNormal(pl, n);
+		//n = &(record->normal);
+	}
 	else {
 		/* indicates nothing was hit */
 		p->w = 0.0;

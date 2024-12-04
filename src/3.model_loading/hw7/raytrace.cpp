@@ -31,15 +31,15 @@ GLubyte* raytrace::display(void)
 void raytrace::initScene()
 {
 	s1 = makeSphere(0.2, 0.0, -2.0, 0.2);
-	s1->m = shader.makeMaterial(0.8, 0.1, 0.15, 0.3);
+	s1->m = shader.makeMaterial(0.91, 0.55, 0.65, 0.3);
 	s2 = makeSphere(-0.2, 0.0, -2.0, 0.2);
-	s2->m = shader.makeMaterial(0.8, 0.1, 0.15, 0.3);
-	// pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 1)));
-	// pl->m = shader.makeMaterial(0.1, 0.8, 0.15, 0.3);
+	s2->m = shader.makeMaterial(0.51, 0.75, 0.85, 0.3);
+	pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 1)));
+	pl->m = shader.makeMaterial(1.00, 0.85, 0.45, 0.3);
 
 	tracer.s1 = s1;
 	tracer.s2 = s2;
-	// tracer.pl = pl;
+	tracer.pl = pl;
 }
 
 void raytrace::initCamera(int w, int h)
