@@ -1,0 +1,5 @@
+C:/Users/pureh/ray-tracing/build/CMakeFiles/STB_IMAGE.dir
+C:/Users/pureh/ray-tracing/build/CMakeFiles/GLAD.dir
+C:/Users/pureh/ray-tracing/build/CMakeFiles/3.model_loading__hw7.dir
+C:/Users/pureh/ray-tracing/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/pureh/ray-tracing/build/CMakeFiles/ZERO_CHECK.dir
