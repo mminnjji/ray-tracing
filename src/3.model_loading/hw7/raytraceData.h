@@ -42,6 +42,9 @@ namespace raytraceData {
 		color c;
 		/* ambient reflectivity */
 		GLfloat amb;
+		GLfloat diff;
+		GLfloat spec;
+		GLfloat shininess;
 	} material;
 
 	typedef struct light {

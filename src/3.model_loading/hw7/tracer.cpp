@@ -91,7 +91,7 @@ int	hitCylinderUD(cylinder* cy, ray *ray, rec* rc)
 }
 
 /*rayCylinderIntersect*/
-int tracer::rayCylinderIntersect(ray* r, cylinder* cy, rec* rc) {
+int tracer::rayCylinderIntersect(ray* r, cylinder* cy, rec* rc, float *t) {
 	vector oc = vminus(*(cy->center), *(r->start));
 	vector ray_dir = *(r->end);
 	vector uv = vminus(vmult(cy->normal, vdot(cy->normal, ray_dir)), ray_dir);
@@ -120,10 +120,12 @@ int tracer::rayCylinderIntersect(ray* r, cylinder* cy, rec* rc) {
 	rc->p = ray_at(r, root);
 	rc->normal = vunit(vminus(rc->p, vplus(*(cy->center), vmult(cy->normal, rvf))));
 	rc->m = cy->m;
+	rc->tmax = root;
+	t = &root;
 	return (1);
 }
 
-int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc)
+int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc, float *t)
 {
 	vector	oc;
 	float	root;
@@ -141,13 +143,14 @@ int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc)
 	rc->normal = vunit(p->normal);
 	rc->m = p->m;
 	rc->tmax = root;
+	t = &root;
 	return (1);
 }
 
 
 /* raySphereIntersect */
 /* returns TRUE if ray r hits sphere s, with parameter value in t */
-int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc) {
+int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc, float *t) {
 	point p;   /* start of transformed ray */
 	float a, b, c;  /* coefficients of quadratic equation */
 	float D;    /* discriminant */
@@ -187,6 +190,7 @@ int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc) {
 			rc->normal = vunit(vminus(rc->p, *(s->c)));
 			rc->m = s->m;
 			rc->tmax = root;
+			t = &root;
 			return(1);
 		}
 	}
@@ -201,24 +205,21 @@ int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, plane* pl, rec
 	int h3 = FALSE;
 	int h4 = FALSE;
 	float tmp = 0;
+	float *rt[4];
 
-	h1 = raySphereIntersect(r, s1, rc);
-	h2 = raySphereIntersect(r, s2, rc);
-	// h3 = rayCylinderIntersect(r, cy, rc);
-	h4 = rayPlaneIntersect(r, pl, rc);
+	h1 = raySphereIntersect(r, s1, rc, rt[0]);
+	h2 = raySphereIntersect(r, s2, rc, rt[1]);
+	h3 = rayCylinderIntersect(r, cy, rc, rt[2]);
+	h4 = rayPlaneIntersect(r, pl, rc, rt[3]);
 
-	if (h1 && !h2)
+	if (h1 && !h2 && !h3 && !h4)
 		return (1);
-	else if (h2 && !h1)
+	else if (h2 && !h3 && !h4)
 		return (2);
-	else if (h4)
+	else if (h3 && !h4)
 		return (3);
-	// if ((h1 && h2 && h1 <= h2) || (h1 && !h2))
-	// 	return (1);
-	// else if ((h1 && h2 && h2 <= h1) || (h2 && !h1))
-	// 	return (2);
-	// else if (h4 <= h2 && h4 <= h1)
-	// 	return (3);
+	else if (h4)
+		return (4);
 	else
 		return (0);
 }
@@ -234,6 +235,14 @@ void tracer::findPlaneNormal(plane* p, vector* n) {
 	n->x = p->normal.x;
 	n->y = p->normal.y;
 	n->z = p->normal.z;
+	n->w = 0.0;
+	n = &(vunit(*n));
+}
+
+void tracer::findCylinderNormal(rec* r, vector* n) {
+	n->x = r->normal.x;
+	n->y = r->normal.y;
+	n->z = r->normal.z;
 	n->w = 0.0;
 	n = &(vunit(*n));
 }
@@ -265,6 +274,12 @@ void tracer::trace(ray* r, point* p, vector* n, material** m) {
 		//n = &(record->normal);
 	}
 	else if (hit == 3) {
+		*m = record->m;
+		findPointOnRay(r, record->t, p);
+		findCylinderNormal(record, n);
+		//n = &(record->normal);
+	}
+	else if (hit == 4) {
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findPlaneNormal(pl, n);
