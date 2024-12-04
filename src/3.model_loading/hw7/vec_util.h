@@ -27,5 +27,6 @@ point vunit(const point& p);
 point vmin(const point& p1, const point& p2);
 point ctop(color color);
 color ptoc(point point);
+point ray_at(ray* r, float t);
 
 #endif // POINT_FUNCTIONS_H

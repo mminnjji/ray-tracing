@@ -1,6 +1,7 @@
 #include "tracer.h"
 
 #include <math.h>
+#include "vec_util.h"
 
 using namespace raytraceData;
 
@@ -21,13 +22,136 @@ void tracer::findPointOnRay(ray* r, float t, point* p) {
 	p->w = 1.0;
 }
 
+int	hit_cylinder_d(cylinder* cy, ray *ray, rec* rc)
+{
+	point	dc;
+	vector		odc;
+	vector ray_dir = vunit(vminus(*(ray->end), *(ray->start)));
+	double		droot;
+
+	dc = vplus(*(cy->center), vmult(cy->normal, cy->height * -0.5));
+	odc = vminus(dc, *(ray->start));
+	droot = vdot(vmult(cy->normal, -1), ray_dir);
+	if (droot != 0)
+		droot = vdot(odc, vmult(cy->normal, -1)) / droot;
+	else
+		return (0);
+	if (droot >= rc->tmin && rc->tmax >= droot && \
+	vlength3(dc, ray_at(ray, droot)) <= cy->radius * cy->radius)
+	{
+		rc->t = droot;
+		rc->p = ray_at(ray, droot);
+		rc->normal = vunit(vmult(cy->normal, -1));
+		rc->m = cy->m;
+	}
+	else
+		return (0);
+	return (1);
+}
+
+int	hit_cylinder_u(cylinder* cy, ray *ray, rec* rc)
+{
+	point		uc;
+	vector		ouc;
+	vector ray_dir = vunit(vminus(*(ray->end), *(ray->start)));
+	double		uroot;
+
+	uc = vplus(*(cy->center), vmult(cy->normal, cy->height * 0.5));
+	ouc = vminus(uc, *(ray->start));
+	uroot = vdot(cy->normal, ray_dir);
+	if (uroot != 0)
+		uroot = vdot(ouc, cy->normal) / uroot;
+	else
+		return (0);
+	if (uroot >= rc->tmin && rc->tmax >= uroot && \
+	vlength3(uc, ray_at(ray, uroot)) <= cy->radius * cy->radius)
+	{
+		rc->t = uroot;
+		rc->p = ray_at(ray, uroot);
+		rc->normal = vunit(cy->normal);
+		rc->m = cy->m;
+	}
+	else
+		return (0);
+	return (1);
+}
+
+int	hitCylinderUD(cylinder* cy, ray *ray, rec* rc)
+{
+	int	a;
+	int	b;
+
+	a = hit_cylinder_u(cy, ray, rc);
+	if (a)
+		rc->tmax = rc->t;
+	b = hit_cylinder_d(cy, ray, rc);
+	if (a || b)
+		return (1);
+	return (0);
+}
+
+/*rayCylinderIntersect*/
+int tracer::rayCylinderIntersect(ray* r, cylinder* cy, rec* rc) {
+	vector oc = vminus(*(cy->center), *(r->start));
+	vector ray_dir = vunit(vminus(*(r->end), *(r->start)));
+	vector uv = vminus(vmult(cy->normal, vdot(cy->normal, ray_dir)), ray_dir);
+	vector dv = vminus(oc, vmult(cy->normal, vdot(cy->normal, oc)));
+
+	GLfloat uv2 = vdot(uv, uv);
+	GLfloat dv2 = 2 * vdot(uv, dv);
+	GLfloat uvdv = dv2 * dv2 - 4 * uv2 * (vdot(dv, dv) - cy->radius * cy->radius);
+	if (uvdv < 0)
+		return (0);
+	GLfloat root = (-1 * dv2 - sqrt(uvdv)) / (2 * uv2);
+	GLfloat rvf = vdot(cy->normal, vminus(vmult(ray_dir, root), oc));
+
+	if (root < rc->tmin || rc->tmax < root || rvf >= cy->height / 2 || rvf <= cy->height / 2 * -1)
+	{
+		GLfloat isUD = hitCylinderUD(cy, r, rc);
+		root = (-dv2 + sqrt(uvdv)) / (2 * uv2);
+		if (isUD && root > isUD)
+			return (1);
+		rvf = vdot(cy->normal, vminus(vmult(ray_dir, root), oc));
+		if (root < rc->tmin || rc->tmax < root \
+		|| rvf >= cy->height / 2 || rvf <= cy->height / 2 * -1)
+			return (0);
+	}
+	rc->t = root;
+	rc->p = ray_at(r, root);
+	rc->normal = vunit(vminus(rc->p, vplus(*(cy->center), vmult(cy->normal, rvf))));
+	rc->m = cy->m;
+	return (1);
+}
+
+int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc)
+{
+	vector	oc;
+	float	root;
+	vector ray_dir = vunit(vminus(*(r->end), *(r->start)));
+
+	oc = vminus(*(p->center), *(r->start));
+	root = vdot(p->normal, ray_dir);
+	if (root != 0)
+		root = vdot(oc, p->normal) / root;
+	else
+		return (0);
+	if (root < rc->tmin || rc->tmax < root)
+		return (0);
+	rc->t = root;
+	rc->normal = vunit(p->normal);
+	rc->m = p->m;
+	return (1);
+}
+
+
 /* raySphereIntersect */
 /* returns TRUE if ray r hits sphere s, with parameter value in t */
-int tracer::raySphereIntersect(ray* r, sphere* s, float* t) {
+int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc) {
 	point p;   /* start of transformed ray */
 	float a, b, c;  /* coefficients of quadratic equation */
 	float D;    /* discriminant */
 	point* v;
+	float root;
 
 	/* transform ray so that sphere center is at origin */
 	/* don't use matrix, just translate! */
@@ -50,23 +174,37 @@ int tracer::raySphereIntersect(ray* r, sphere* s, float* t) {
 		D = static_cast<float>(sqrt(D));
 		/* First check the root with the lower value of t: */
 		/* this one, since D is positive */
-		*t = (-b - D) / (2 * a);
+		root = (-b - D) / (2 * a);
 		/* ignore roots which are less than zero (behind viewpoint) */
-		if (*t < 0) {
-			*t = (-b + D) / (2 * a);
+		if (root < 0) {
+			root = (-b + D) / (2 * a);
 		}
-		if (*t < 0) { return(FALSE); }
-		else return(TRUE);
+		if (root < 0 || root < rc->tmin || rc->tmax < root) {return(FALSE);}
+		else{
+			rc->t = root;
+			rc->p = ray_at(r, root);
+			rc->normal = vunit(vminus(rc->p, *(s->c)));
+			rc->m = s->m;
+			return(TRUE);
+		}
 	}
 }
 
-/* normal vector of s at p is returned in n */
-/* note: dividing by radius normalizes */
-void tracer::findSphereNormal(sphere* s, point* p, vector* n) {
-	n->x = (p->x - s->c->x) / s->r;
-	n->y = (p->y - s->c->y) / s->r;
-	n->z = (p->z - s->c->z) / s->r;
-	n->w = 0.0;
+int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, rec* rc)
+{
+	float tmax;
+	float tmin;
+	int h1 = FALSE;
+	int h2 = FALSE;
+	int h3 = FALSE;
+	int h4 = FALSE;
+
+	h1 = raySphereIntersect(r, s1, rc);
+	h2 = raySphereIntersect(r, s2, rc);
+	// h3 = rayCylinderIntersect(r, cy, rc);
+	// h4 = rayPlaneIntersect(r, p, rc);
+
+	return (h1 + h2 + h3 + h4);
 }
 
 
@@ -75,14 +213,19 @@ void tracer::findSphereNormal(sphere* s, point* p, vector* n) {
    the normal vector n to the surface at that point, and the surface
    material m. If no hit, returns an infinite point (p->w = 0.0) */
 void tracer::trace(ray* r, point* p, vector* n, material** m) {
-	float t = 0;     /* parameter value at first hit */
+	rec* record;
 	int hit = FALSE;
 
-	hit = raySphereIntersect(r, s1, &t);
+	record = new rec();
+
+	record->tmin = 0.000001;
+	record->tmax = INFINITY;
+
+	hit = realHit(r, s1, s2, cy, record);
 	if (hit) {
 		*m = s1->m;
-		findPointOnRay(r, t, p);
-		findSphereNormal(s1, p, n);
+		findPointOnRay(r, record->t, p);
+		n = &(record->normal);
 	}
 	else {
 		/* indicates nothing was hit */

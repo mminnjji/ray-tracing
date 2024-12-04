@@ -59,4 +59,27 @@ namespace raytraceData {
 		material* m;
 	} sphere;
 
+	typedef struct cylinder {
+		point*		center;
+		vector		normal;
+		GLfloat		radius;
+		GLfloat		height;
+		material*	m;
+	} cylinder;
+
+	typedef struct plane {
+		point	*center;
+		vector	normal;
+		material* m;
+	} plane;
+
+	typedef struct rec {
+		material* m;
+		vector	normal;
+		point	p;
+		float	t;
+		float	tmax;
+		float	tmin;
+	} rec;
+
 }

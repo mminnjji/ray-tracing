@@ -7,6 +7,7 @@
 using namespace glm;
 using namespace raytraceData;
 
+
 void vset(point* point, GLfloat x, GLfloat y, GLfloat z) {
     point->x = x;
     point->y = y;
@@ -94,4 +95,12 @@ point ctop(color color)
 color ptoc(point point)
 {
     return {point.x, point.y, point.z};
+}
+
+point ray_at(ray* r, float t)
+{
+    vector ray_dir = vunit(vminus(*(r->end), *(r->start)));
+    point at = vplus(*(r->start), vmult(ray_dir, t));
+    at.w = 1.0;
+    return (at);
 }

@@ -48,7 +48,7 @@ void shader::shade(point* p, vector* n, material* m, color* c, light* l, point* 
 	diff = ptoc(vmult(ctop(l->l_c), fmax(vdot(*n, l_dir), 0.0)));
 	v_dir[0] = vunit(vmult(vminus(*p, *c_origin), -1));
 	v_dir[1] = reflect(vmult(l_dir, -1), *n);
-	spec = ptoc(vmult(vmult(ctop(l->l_c), 0.5), pow(fmax(vdot(v_dir[0], v_dir[1]), 0), 64)));
+	spec = ptoc(vmult(vmult(ctop(l->l_c), 0.5), pow(fmax(vdot(v_dir[0], v_dir[1]), 0), 32)));
 
 	light_color = ptoc(vplus(vplus(ctop(light_color), vmult(vplus(ctop(diff), ctop(spec)), l->b_r * 3)), {m->amb, m->amb, m->amb, 1}));
 	
