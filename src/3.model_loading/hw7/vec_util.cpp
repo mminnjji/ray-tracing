@@ -99,7 +99,7 @@ color ptoc(point point)
 
 point ray_at(ray* r, float t)
 {
-    vector ray_dir = vunit(vminus(*(r->end), *(r->start)));
+    vector ray_dir = *(r->end);
     point at = vplus(*(r->start), vmult(ray_dir, t));
     at.w = 1.0;
     return (at);

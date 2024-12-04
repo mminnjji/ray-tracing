@@ -30,7 +30,7 @@ private:
 	raytraceData::sphere* s1;
 	raytraceData::sphere* s2;
 	raytraceData::cylinder* cy;
-	raytraceData::plane* p;	   /* the scene: so far, just one sphere */
+	raytraceData::plane* pl;	   /* the scene: so far, just one sphere */
 
 	/* parameters defining the camera */
 	raytraceData::point* viewpoint;
