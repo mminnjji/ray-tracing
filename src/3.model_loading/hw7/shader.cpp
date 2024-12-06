@@ -1,4 +1,5 @@
 #include "shader.h"
+#include "tracer.h"
 #include "vec_util.h"
 
 using namespace raytraceData;
@@ -35,11 +36,39 @@ vector	reflect(point v, vector n)
 	return (vminus(v, vmult(n, vdot(v, n) * 2)));
 }
 
+// is Shadow confirm 
+int shader::isShadow(light l, point p, int type)
+{
+    point po;
+    vector n;
+    material *m;
+    ray r;
+
+    vector l_dir = vminus(*(l.orig), p);
+
+    r.start = &(vplus(p, vmult(l_dir, EPSILON)));
+    r.end = &l_dir;
+    r.end->w = 0.0;
+
+    float light_len = vlength(l_dir) + vlength(vmult(l_dir, EPSILON));
+
+    int res = tracer.trace(&r, &po, &n, &m, light_len);
+    if (res && res != type)
+        return (1);
+    return (0);
+}
+
 /* shade */
 /* color of point p with normal vector n and material m returned in c */
-void shader::shade(point* p, vector* n, material* m, color* c, light* l, point* c_origin) {
+void shader::shade(point* p, vector* n, material* m, color* c, light* l, point* c_origin, int type) {
     // 결과 조명을 저장할 컬러
     color light_color = {0, 0, 0};
+    int isVisible = 1;
+
+    // 그림자 여부 확인
+    if (isShadow(*l, *p, type)) {
+        isVisible = 0;
+    }
 
     // 광선 방향 계산 (Light Direction)
     vector l_dir = {
@@ -49,60 +78,42 @@ void shader::shade(point* p, vector* n, material* m, color* c, light* l, point* 
         0
     };
 
-    // 방향 벡터 정규화
-    GLfloat l_length = sqrt(l_dir.x * l_dir.x + l_dir.y * l_dir.y + l_dir.z * l_dir.z);
-    l_dir.x /= l_length;
-    l_dir.y /= l_length;
-    l_dir.z /= l_length;
+    l_dir = vunit(l_dir);
+    // ambient 계산
+    light_color = ptoc(vmult(ctop(l->l_c), m->amb * l->b_r));
 
-    // **Ambient 계산**
-    light_color.r += l->l_c.r * m->amb * l->b_r;
-    light_color.g += l->l_c.g * m->amb * l->b_r;
-    light_color.b += l->l_c.b * m->amb * l->b_r;
+    if (isVisible) {
+        // diffuse 계산
+        GLfloat dot_ln = max(0.0f, l_dir.x * n->x + l_dir.y * n->y + l_dir.z * n->z);
+        light_color = ptoc(vplus(ctop(light_color), vmult(vmult_(ctop(l->l_c), ctop(m->c)), m->diff * dot_ln * l->b_r)));
 
-    // **Diffuse 계산**
-    GLfloat dot_ln = max(0.0f, l_dir.x * n->x + l_dir.y * n->y + l_dir.z * n->z);
-    light_color.r += l->l_c.r * m->c.r * m->diff * dot_ln * l->b_r;
-    light_color.g += l->l_c.g * m->c.g * m->diff * dot_ln * l->b_r;
-    light_color.b += l->l_c.b * m->c.b * m->diff * dot_ln * l->b_r;
+        // specular 계산
+        vector view_dir = {
+            c_origin->x - p->x,
+            c_origin->y - p->y,
+            c_origin->z - p->z,
+            0
+        };
 
-    // **Specular 계산**
-    vector view_dir = {
-        c_origin->x - p->x,
-        c_origin->y - p->y,
-        c_origin->z - p->z,
-        0
-    };
+        view_dir = vunit(view_dir);
 
-    // 뷰 벡터 정규화
-    GLfloat view_length = sqrt(view_dir.x * view_dir.x + view_dir.y * view_dir.y + view_dir.z * view_dir.z);
-    view_dir.x /= view_length;
-    view_dir.y /= view_length;
-    view_dir.z /= view_length;
+        // 반사 벡터 계산
+        vector reflect_dir = {
+            2.0f * dot_ln * n->x - l_dir.x,
+            2.0f * dot_ln * n->y - l_dir.y,
+            2.0f * dot_ln * n->z - l_dir.z,
+            0
+        };
 
-    // 반사 벡터 계산
-    vector reflect_dir = {
-        2.0f * dot_ln * n->x - l_dir.x,
-        2.0f * dot_ln * n->y - l_dir.y,
-        2.0f * dot_ln * n->z - l_dir.z,
-        0
-    };
+        reflect_dir = vunit(reflect_dir);
 
-    // 정규화
-    GLfloat reflect_length = sqrt(reflect_dir.x * reflect_dir.x + reflect_dir.y * reflect_dir.y + reflect_dir.z * reflect_dir.z);
-    reflect_dir.x /= reflect_length;
-    reflect_dir.y /= reflect_length;
-    reflect_dir.z /= reflect_length;
+        GLfloat dot_vr = max(0.0f, view_dir.x * reflect_dir.x + view_dir.y * reflect_dir.y + view_dir.z * reflect_dir.z);
+        GLfloat spec_intensity = pow(dot_vr, m->shininess);
+        light_color = ptoc(vplus(ctop(light_color), vmult(vmult_(ctop(l->l_c), ctop(m->c)), m->spec * spec_intensity * l->b_r)));
+    }
 
-    GLfloat dot_vr = max(0.0f, view_dir.x * reflect_dir.x + view_dir.y * reflect_dir.y + view_dir.z * reflect_dir.z);
-    GLfloat spec_intensity = pow(dot_vr, m->shininess);
-
-    light_color.r += l->l_c.r * m->c.r * m->spec * spec_intensity * l->b_r;
-    light_color.g += l->l_c.g * m->c.g * m->spec * spec_intensity * l->b_r;
-    light_color.b += l->l_c.b * m->c.b * m->spec * spec_intensity * l->b_r;
-
-    // 최종 조명 값 반환
-    c->r = min(light_color.r, 1.0f); // 색상 값 클램핑
+    // 최종 조명 값 반환 -> 색상 값 클램핑
+    c->r = min(light_color.r, 1.0f);
     c->g = min(light_color.g, 1.0f);
     c->b = min(light_color.b, 1.0f);
 }

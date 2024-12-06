@@ -43,6 +43,7 @@ int	hit_cylinder_d(cylinder* cy, ray *ray, rec* rc)
 		rc->p = ray_at(ray, droot);
 		rc->normal = vunit(vmult(cy->normal, -1));
 		rc->m = cy->m;
+		rc->tmax = droot;
 	}
 	else
 		return (0);
@@ -69,6 +70,7 @@ int	hit_cylinder_u(cylinder* cy, ray *ray, rec* rc)
 		rc->t = uroot;
 		rc->p = ray_at(ray, uroot);
 		rc->normal = vunit(cy->normal);
+		rc->tmax = uroot;
 		rc->m = cy->m;
 	}
 	else
@@ -251,42 +253,43 @@ void tracer::findCylinderNormal(rec* r, vector* n) {
 /* If something is hit, returns the finite intersection point p,
    the normal vector n to the surface at that point, and the surface
    material m. If no hit, returns an infinite point (p->w = 0.0) */
-void tracer::trace(ray* r, point* p, vector* n, material** m) {
+int tracer::trace(ray* r, point* p, vector* n, material** m, float tmax) {
 	rec* record;
 	int hit = FALSE;
 
 	record = new rec();
 
-	record->tmin = 0.000000000001;
-	record->tmax = INFINITY;
+	record->tmin = 0.000000001;
+	record->tmax = tmax;
 
 	hit = realHit(r, s1, s2, cy, pl, record);
 	if (hit == 1) {
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findSphereNormal(s1, p, n);
-		//n = &(record->normal);
+		return (1);
 	}
 	else if (hit == 2) {
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findSphereNormal(s2, p, n);
-		//n = &(record->normal);
+		return (2);
 	}
 	else if (hit == 3) {
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findCylinderNormal(record, n);
-		//n = &(record->normal);
+		return (3);
 	}
 	else if (hit == 4) {
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findPlaneNormal(pl, n);
-		//n = &(record->normal);
+		return (4);
 	}
 	else {
 		/* indicates nothing was hit */
 		p->w = 0.0;
+		return (0);
 	}
 }
