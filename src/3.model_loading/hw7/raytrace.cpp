@@ -30,14 +30,14 @@ GLubyte* raytrace::display(void)
 
 void raytrace::initScene()
 {
-	s1 = makeSphere(0.3, 0.0, -3.0, 0.2);
-	s1->m = shader.makeMaterial(0.91, 0.55, 0.65, 0.3, 0.7, 0.5, 50);
-	s2 = makeSphere(-0.3, 0.0, -4.0, 0.1);
-	s2->m = shader.makeMaterial(0.51, 0.75, 0.85, 0.3, 0.7, 0.5, 50);
+	s1 = makeSphere(-0.23, 0.0, -2.0, 0.2);
+	s1->m = shader.makeMaterial(1.0, 0.1, 0.0, 0.1, 0.7, 0.5, 50);
+	s2 = makeSphere(0.2, -0.1, -1.5, 0.1);
+	s2->m = shader.makeMaterial(0.0, 0.75, 0.85, 0.1, 0.7, 0.5, 50);
 	pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 1)));
-	pl->m = shader.makeMaterial(1.00, 0.85, 0.45, 0.3, 0.7, 0.5, 50);
-	cy = makeCylinder(0.0, 0.0, -5.0, 0.1, *(makePoint(0.0, 1, 0., 1)), 0.4);
-	cy->m = shader.makeMaterial(0.61, 0.80, 0.54, 0.3, 0.7, 0.5, 50);
+	pl->m = shader.makeMaterial(0.4118, 0.5020, 0.6078, 0.1, 0.7, 0.5, 50);
+	cy = makeCylinder(0.0, 0.0, -2.0, 0.1, *(makePoint(0.0, 1, 0., 1)), 0.4);
+	cy->m = shader.makeMaterial(0.6, 0.5, 0.0, 0.1, 0.7, 0.5, 50);
 
 	tracer.s1 = s1;
 	tracer.s2 = s2;
@@ -175,7 +175,7 @@ void raytrace::rayColor(ray* r, color* c) {
 
 	/////light initializatin
 	// light* makeLight(raytraceData::point* light_origin, raytraceData::color light_color, GLfloat bright_ratio);
-	l = makeLight(makePoint(10, -10, 10, 1), {1, 1, 1}, 1.0);
+	l = makeLight(makePoint(5, -10, 10, 1), {1, 1, 1}, 1.0);
 
 	p.w = 0.0;  /* inialize to "no intersection" */
 	int type = tracer.trace(r, &p, &n, &m, INFINITY);
@@ -184,9 +184,9 @@ void raytrace::rayColor(ray* r, color* c) {
 		shader.shade(&p, &n, m, c, l, viewpoint, type);  /* do the lighting calculations */
 	}
 	else {             /* nothing was hit */
-		c->r = 0.0;
-		c->g = 0.0;
-		c->b = 0.0;
+		c->r = 1.0;
+		c->g = 1.0;
+		c->b = 1.0;
 	}
 }
 
