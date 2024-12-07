@@ -209,10 +209,14 @@ int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, plane* pl, rec
 	float tmp = 0;
 	float *rt[4];
 
-	h1 = raySphereIntersect(r, s1, rc, rt[0]);
-	h2 = raySphereIntersect(r, s2, rc, rt[1]);
-	h3 = rayCylinderIntersect(r, cy, rc, rt[2]);
-	h4 = rayPlaneIntersect(r, pl, rc, rt[3]);
+	if (s1 != NULL)
+		h1 = raySphereIntersect(r, s1, rc, rt[0]);
+	if (s2 != NULL)
+		h2 = raySphereIntersect(r, s2, rc, rt[1]);
+	if (cy != NULL)
+		h3 = rayCylinderIntersect(r, cy, rc, rt[2]);
+	if (pl != NULL)
+		h4 = rayPlaneIntersect(r, pl, rc, rt[3]);
 
 	if (h1 && !h2 && !h3 && !h4)
 		return (1);

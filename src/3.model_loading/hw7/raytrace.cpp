@@ -36,8 +36,12 @@ void raytrace::initScene()
 	s2->m = shader.makeMaterial(0.0, 0.75, 0.85, 0.1, 0.7, 0.5, 50);
 	pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 1)));
 	pl->m = shader.makeMaterial(0.4118, 0.5020, 0.6078, 0.1, 0.7, 0.5, 50);
-	cy = makeCylinder(0.0, 0.0, -2.0, 0.1, *(makePoint(0.0, 1, 0., 1)), 0.4);
+	cy = makeCylinder(0.1, 0.0, -3.0, 0.1, *(makePoint(0.0, 1, 0., 1)), 0.4);
 	cy->m = shader.makeMaterial(0.6, 0.5, 0.0, 0.1, 0.7, 0.5, 50);
+	// s1 = NULL;
+	// s2 = NULL;
+	// pl= NULL;
+	// cy = NULL;
 
 	tracer.s1 = s1;
 	tracer.s2 = s2;
