@@ -5,7 +5,7 @@
 
 using namespace raytraceData;
 
-tracer::tracer() : s1(NULL)
+tracer::tracer() : s1(NULL), s2(NULL), cy1(NULL), cy2(NULL), pl(NULL)
 {
 }
 
@@ -22,61 +22,120 @@ void tracer::findPointOnRay(ray *r, float t, point *p)
 	p->w = 1.0;
 }
 
-/*rayCylinderIntersect*/
-int tracer::rayCylinderIntersect(ray *r, cylinder *cy, rec *rc, float *t)
+int tracer::rayCylinderUDIntersect(ray *r, cylinder *cy, rec *rc)
 {
-	GLfloat root;
+	GLfloat uroot;
+	GLfloat droot;
+	// 윗면의 center
+	vector uc = vplus(*(cy->center), vmult(cy->normal, cy->height * 0.5));
+	// 아랫면의 center
+	vector dc = vplus(*(cy->center), vmult(cy->normal, cy->height * -0.5));
 
-	cy->normal = vunit(cy->normal);
-	vector ad = vminus(*(r->end), vmult(cy->normal, vdot(cy->normal, *(r->end))));
-	vector bd = vplus(vminus(vminus(*(r->start), *(cy->center)), vmult(cy->normal, vdot(cy->normal, *(r->start)))), vmult(cy->normal, vdot(cy->normal, *(cy->center))));
-
-	float a = vdot(ad, ad);
-	float b = 2 * vdot(ad, bd);
-	float c = vdot(bd, bd) - cy->radius * cy->radius;
-
-	float pbs = b * b - 4 * a * c;
-	if (pbs < 0)
+	// ray ~ center 벡터가 법선벡터와 수직
+	if (vdot(*(r->end), cy->normal))
 	{
+		uroot = (vdot(uc, cy->normal) - vdot(*(r->start), cy->normal)) / vdot(*(r->end), cy->normal);
+		droot = (vdot(dc, cy->normal) - vdot(*(r->start), cy->normal)) / vdot(*(r->end), cy->normal);
+
+		if (vlength(vminus(ray_at(r, uroot), uc)) > cy->radius && vlength(vminus(ray_at(r, droot), dc)) <= cy->radius) // d만
+		{
+			if (droot < rc->tmin || rc->tmax < droot)
+			{
+				return (0);
+			}
+			rc->t = droot;
+			rc->normal = vmult(cy->normal, -1);
+			rc->m = cy->m;
+			rc->tmax = droot;
+			return (1);
+		}
+		else if (vlength(vminus(ray_at(r, uroot), uc)) <= cy->radius && vlength(vminus(ray_at(r, droot), dc)) > cy->radius) // u만
+		{
+			if (uroot < rc->tmin || rc->tmax < uroot)
+			{
+				return (0);
+			}
+			rc->t = uroot;
+			rc->normal = cy->normal;
+			rc->m = cy->m;
+			rc->tmax = uroot;
+			return (1);
+		}
+		else if (vlength(vminus(ray_at(r, uroot), uc)) <= cy->radius && vlength(vminus(ray_at(r, droot), dc)) <= cy->radius)
+		{
+			GLfloat root = uroot < droot ? uroot : droot;
+			if (root < rc->tmin || rc->tmax < root)
+			{
+				return (0);
+			}
+			rc->t = root;
+			rc->normal = root == uroot ? cy->normal : vmult(cy->normal, -1);
+			rc->m = cy->m;
+			rc->tmax = root;
+			return (1);
+		}
 		return (0);
 	}
 	else
 	{
-		root = ( -1 * b - sqrt(pbs) ) / (2 * a);
-		vector cp = vminus(ray_at(r, root), *(cy->center));
-		vector cp_ = vmult(cy->normal, vdot(cp, cy->normal));
-		if (vdot(cp_, cp_) > cy->height * cy->height / 4 || root < rc->tmin || rc->tmax < root)
-		{
-			root = ( -1 * b + sqrt(pbs) ) / (2 * a);
-			cp = vminus(ray_at(r, root), *(cy->center));
-			cp_ = vmult(cy->normal, vdot(cp, cy->normal));
-			root = (-1 * b + sqrt(pbs)) / 2 * a;
-			if (vdot(cp_, cp_) > cy->height * cy->height / 4 || root < rc->tmin || rc->tmax < root)
-			{
-				return (0);
-			}
-			else
-			{
-				rc->t = root;
-				rc->normal = vunit(vminus(cp, cp_));
-				rc->m = cy->m;
-				rc->tmax = root;
-				t = &root;
-			}
-		}
-		else
-		{
-			rc->t = root;
-			rc->normal = vunit(vminus(cp, cp_));
-			rc->m = cy->m;
-			rc->tmax = root;
-			t = &root;
-		}
+		return (0);
 	}
-	return (1);
 }
 
-int tracer::rayPlaneIntersect(ray *r, plane *p, rec *rc, float *t)
+/*rayCylinderIntersect*/
+int tracer::rayCylinderIntersect(ray *r, cylinder *cy, rec *rc)
+{
+    GLfloat root;
+    cy->normal = vunit(cy->normal);
+
+    // 레이와 원기둥 축의 직교 성분(ad) 및 bd 계산
+    vector ad = vminus(*(r->end), vmult(cy->normal, vdot(cy->normal, *(r->end))));
+    vector bd = vplus(vminus(vminus(*(r->start), *(cy->center)), 
+                  vmult(cy->normal, vdot(cy->normal, *(r->start)))), 
+                  vmult(cy->normal, vdot(cy->normal, *(cy->center))));
+
+    // 2차 방정식의 계수
+    float a = vdot(ad, ad);
+    float b = 2 * vdot(ad, bd);
+    float c = vdot(bd, bd) - cy->radius * cy->radius;
+
+    // 판별식 계산
+    float pbs = b * b - 4 * a * c;
+    if (pbs < 0)
+        return (0); // 교차 없음
+
+    // 작은 root부터 검사
+    root = (-1 * b - sqrt(pbs)) / (2 * a);
+    vector cp = vminus(ray_at(r, root), *(cy->center)); // 교차점 - 원기둥 중심
+    vector cp_ = vmult(cy->normal, vdot(cp, cy->normal)); // 축 방향 성분
+
+    // 높이 조건 확인
+    if (vdot(cp_, cp_) > (cy->height * cy->height) / 4 || root < rc->tmin || root > rc->tmax)
+    {
+        // root가 높이 조건을 벗어나거나 t 범위에 없으면 두 번째 root 검사
+        root = (-1 * b + sqrt(pbs)) / (2 * a);
+        cp = vminus(ray_at(r, root), *(cy->center));
+        cp_ = vmult(cy->normal, vdot(cp, cy->normal));
+
+        if (vdot(cp_, cp_) > (cy->height * cy->height) / 4 || root < rc->tmin || root > rc->tmax)
+            return (0); // 두 번째 root도 유효하지 않음
+    }
+
+    // 겉면인지 확인: 교차점의 노멀과 레이 방향 벡터의 내적이 음수인지 확인
+    vector surface_normal = vunit(vminus(cp, cp_)); // 원기둥 표면 노멀
+    if (vdot(surface_normal, *(r->end)) > 0)
+        return (0); // 안쪽 면 교차는 무시
+
+    // rc 업데이트
+    rc->t = root;
+    rc->normal = surface_normal;
+    rc->m = cy->m;
+    rc->tmax = root;
+    return (1);
+}
+
+
+int tracer::rayPlaneIntersect(ray *r, plane *p, rec *rc )
 {
 	vector oc;
 	float root;
@@ -94,13 +153,13 @@ int tracer::rayPlaneIntersect(ray *r, plane *p, rec *rc, float *t)
 	rc->normal = vunit(p->normal);
 	rc->m = p->m;
 	rc->tmax = root;
-	t = &root;
+	 
 	return (1);
 }
 
 /* raySphereIntersect */
 /* returns TRUE if ray r hits sphere s, with parameter value in t */
-int tracer::raySphereIntersect(ray *r, sphere *s, rec *rc, float *t)
+int tracer::raySphereIntersect(ray *r, sphere *s, rec *rc )
 {
 	point p;	   /* start of transformed ray */
 	float a, b, c; /* coefficients of quadratic equation */
@@ -147,7 +206,7 @@ int tracer::raySphereIntersect(ray *r, sphere *s, rec *rc, float *t)
 			rc->normal = vunit(vminus(rc->p, *(s->c)));
 			rc->m = s->m;
 			rc->tmax = root;
-			t = &root;
+			 
 			return (1);
 		}
 	}
@@ -155,38 +214,38 @@ int tracer::raySphereIntersect(ray *r, sphere *s, rec *rc, float *t)
 
 int tracer::realHit(ray *r, sphere *s1, sphere *s2, cylinder *cy1, cylinder *cy2, plane *pl, rec *rc)
 {
-	float tmax;
-	float tmin;
 	int h1 = FALSE;
 	int h2 = FALSE;
 	int h3 = FALSE;
+	int h3_ = FALSE;
 	int h4 = FALSE;
 	int h5 = FALSE;
-	float tmp = 0;
-	float *rt[4];
+	int h5_ = FALSE;
 
 	if (s1 != NULL)
-		h1 = raySphereIntersect(r, s1, rc, rt[0]);
+		h1 = raySphereIntersect(r, s1, rc);
 	if (s2 != NULL)
-		h2 = raySphereIntersect(r, s2, rc, rt[1]);
+		h2 = raySphereIntersect(r, s2, rc);
 	if (cy1 != NULL)
-		h3 = rayCylinderIntersect(r, cy1, rc, rt[2]);
+		h3 = rayCylinderIntersect(r, cy1, rc);
+		h3_ = rayCylinderUDIntersect(r, cy1, rc);
 	if (cy2 != NULL)
-		h5 = rayCylinderIntersect(r, cy2, rc, rt[2]);
+		h5 = rayCylinderIntersect(r, cy2, rc);
+		h5_ = rayCylinderUDIntersect(r, cy2, rc);
 	if (pl != NULL)
-		h4 = rayPlaneIntersect(r, pl, rc, rt[3]);
+		h4 = rayPlaneIntersect(r, pl, rc);
 
-	if (h1 && !h2 && !h3 && !h4 && !h5)
+	if (h1 && !h2 && !h3 && !h3_ && !h5 && !h5_ && !h4)
 		return (1);
-	else if (h2 && !h3 && !h4 && !h5)
+	else if (h2 && !h3 && !h3_ && !h5 && !h5_ && !h4)
 		return (2);
-	else if (h3 && !h4 && !h5)
+	else if ((h3 && !h3_ && !h5 && !h5_ && !h4) || (h3_ && !h5 && !h5_ && !h4))
 		return (3);
-	else if (h5 && !h4)
+	else if((h5 && !h5_ && !h4) || (h5_ && !h4))
 		return (5);
 	else if (h4)
 		return (4);
-	else
+	else 
 		return (0);
 }
 
@@ -227,7 +286,7 @@ int tracer::trace(ray *r, point *p, vector *n, material **m, float tmax)
 
 	record = new rec();
 
-	record->tmin = 0.000000001;
+	record->tmin = 0;
 	record->tmax = tmax;
 
 	hit = realHit(r, s1, s2, cy1, cy2, pl, record);
