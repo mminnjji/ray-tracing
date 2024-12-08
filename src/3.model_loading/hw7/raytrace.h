@@ -29,7 +29,8 @@ private:
 	int height;    /* height of window in pixels */
 	raytraceData::sphere* s1;
 	raytraceData::sphere* s2;
-	raytraceData::cylinder* cy;
+	raytraceData::cylinder* cy1;
+	raytraceData::cylinder* cy2;
 	raytraceData::plane* pl;	   /* the scene: so far, just one sphere */
 
 	/* parameters defining the camera */

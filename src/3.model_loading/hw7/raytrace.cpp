@@ -30,30 +30,35 @@ GLubyte* raytrace::display(void)
 
 void raytrace::initScene()
 {
-	s1 = makeSphere(-0.23, 0.0, -2.0, 0.2);
+	s1 = makeSphere(-0.35, 0.0, -3.0, 0.2);
 	s1->m = shader.makeMaterial(1.0, 0.1, 0.0, 0.1, 0.7, 0.5, 50);
-	s2 = makeSphere(0.2, -0.1, -1.5, 0.1);
-	s2->m = shader.makeMaterial(0.0, 0.75, 0.85, 0.1, 0.7, 0.5, 50);
-	pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 1)));
+	// s2 = makeSphere(0.2, -0.1, -1.5, 0.07);
+	// s2->m = shader.makeMaterial(0.0, 0.75, 0.85, 0.1, 0.7, 0.5, 50);
+	pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 0)));
 	pl->m = shader.makeMaterial(0.4118, 0.5020, 0.6078, 0.1, 0.7, 0.5, 50);
-	cy = makeCylinder(0.1, 0.0, -3.0, 0.1, *(makePoint(0.0, 1, 0., 1)), 0.4);
-	cy->m = shader.makeMaterial(0.6, 0.5, 0.0, 0.1, 0.7, 0.5, 50);
+	cy1 = makeCylinder(0.0, -0.1, -2.0, 0.07, *(makePoint(-1, -1, -1, 0)), 0.2);
+	cy1->m = shader.makeMaterial(0.0, 0.5, 0.1, 0.1, 0.7, 0.5, 50);
+	cy2 = makeCylinder(0.4, -0.1, -3.0, 0.1, *(makePoint(1, -1, 1, 0)), 0.3);
+	cy2->m = shader.makeMaterial(0.0, 0.75, 0.85, 0.1, 0.7, 0.5, 50);
 	// s1 = NULL;
-	// s2 = NULL;
+	 s2 = NULL;
 	// pl= NULL;
 	// cy = NULL;
 
 	tracer.s1 = s1;
 	tracer.s2 = s2;
 	tracer.pl = pl;
-	tracer.cy = cy;
+	tracer.cy1 = cy1;
+	tracer.cy2 = cy2;
 	shader.s1 = s1;
 	shader.s2 = s2;
 	shader.pl = pl;
-	shader.cy = cy;
+	shader.cy1 = cy1;
+	shader.cy2 = cy2;
 	shader.tracer.s1 = s1;
 	shader.tracer.s2 = s2;
-	shader.tracer.cy = cy;
+	shader.tracer.cy1 = cy1;
+	shader.tracer.cy2 = cy2;
 	shader.tracer.pl = pl;
 }
 

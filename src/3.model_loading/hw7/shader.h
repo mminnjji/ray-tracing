@@ -18,7 +18,8 @@ public:
 	int isShadow(raytraceData::light l, raytraceData::point p, int type);
 	raytraceData::sphere* s1; /* the scene: two sphere one cylinder */
 	raytraceData::sphere* s2;		   
-	raytraceData::cylinder* cy;
+	raytraceData::cylinder* cy1;
+	raytraceData::cylinder* cy2;
 	raytraceData::plane* pl;
 
 	tracer tracer;

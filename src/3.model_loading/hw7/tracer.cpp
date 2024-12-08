@@ -5,8 +5,7 @@
 
 using namespace raytraceData;
 
-tracer::tracer():
-	s1(NULL)
+tracer::tracer() : s1(NULL)
 {
 }
 
@@ -15,122 +14,72 @@ tracer::~tracer()
 }
 
 /* point on ray r parameterized by t is returned in p */
-void tracer::findPointOnRay(ray* r, float t, point* p) {
+void tracer::findPointOnRay(ray *r, float t, point *p)
+{
 	p->x = r->start->x + t * r->end->x;
 	p->y = r->start->y + t * r->end->y;
 	p->z = r->start->z + t * r->end->z;
 	p->w = 1.0;
 }
 
-int	hit_cylinder_d(cylinder* cy, ray *ray, rec* rc)
-{
-	point	dc;
-	vector		odc;
-	vector ray_dir = *(ray->end);
-	double		droot;
-
-	dc = vplus(*(cy->center), vmult(cy->normal, cy->height * -0.5));
-	odc = vminus(dc, *(ray->start));
-	droot = vdot(vmult(cy->normal, -1), ray_dir);
-	if (droot != 0)
-		droot = vdot(odc, vmult(cy->normal, -1)) / droot;
-	else
-		return (0);
-	if (droot >= rc->tmin && rc->tmax >= droot && \
-	vlength3(dc, ray_at(ray, droot)) <= cy->radius * cy->radius)
-	{
-		rc->t = droot;
-		rc->p = ray_at(ray, droot);
-		rc->normal = vunit(vmult(cy->normal, -1));
-		rc->m = cy->m;
-		rc->tmax = droot;
-	}
-	else
-		return (0);
-	return (1);
-}
-
-int	hit_cylinder_u(cylinder* cy, ray *ray, rec* rc)
-{
-	point		uc;
-	vector		ouc;
-	vector ray_dir = *(ray->end);
-	double		uroot;
-
-	uc = vplus(*(cy->center), vmult(cy->normal, cy->height * 0.5));
-	ouc = vminus(uc, *(ray->start));
-	uroot = vdot(cy->normal, ray_dir);
-	if (uroot != 0)
-		uroot = vdot(ouc, cy->normal) / uroot;
-	else
-		return (0);
-	if (uroot >= rc->tmin && rc->tmax >= uroot && \
-	vlength3(uc, ray_at(ray, uroot)) <= cy->radius * cy->radius)
-	{
-		rc->t = uroot;
-		rc->p = ray_at(ray, uroot);
-		rc->normal = vunit(cy->normal);
-		rc->tmax = uroot;
-		rc->m = cy->m;
-	}
-	else
-		return (0);
-	return (1);
-}
-
-int	hitCylinderUD(cylinder* cy, ray *ray, rec* rc)
-{
-	int	a;
-	int	b;
-
-	a = hit_cylinder_u(cy, ray, rc);
-	if (a)
-		rc->tmax = rc->t;
-	b = hit_cylinder_d(cy, ray, rc);
-	if (a || b)
-		return (1);
-	return (0);
-}
-
 /*rayCylinderIntersect*/
-int tracer::rayCylinderIntersect(ray* r, cylinder* cy, rec* rc, float *t) {
-	vector oc = vminus(*(cy->center), *(r->start));
-	vector ray_dir = *(r->end);
-	vector uv = vminus(vmult(cy->normal, vdot(cy->normal, ray_dir)), ray_dir);
-	vector dv = vminus(oc, vmult(cy->normal, vdot(cy->normal, oc)));
+int tracer::rayCylinderIntersect(ray *r, cylinder *cy, rec *rc, float *t)
+{
+	GLfloat root;
 
-	GLfloat uv2 = vdot(uv, uv);
-	GLfloat dv2 = 2 * vdot(uv, dv);
-	GLfloat uvdv = dv2 * dv2 - 4 * uv2 * (vdot(dv, dv) - cy->radius * cy->radius);
-	if (uvdv < 0)
-		return (0);
-	GLfloat root = (-1 * dv2 - sqrt(uvdv)) / (2 * uv2);
-	GLfloat rvf = vdot(cy->normal, vminus(vmult(ray_dir, root), oc));
+	cy->normal = vunit(cy->normal);
+	vector ad = vminus(*(r->end), vmult(cy->normal, vdot(cy->normal, *(r->end))));
+	vector bd = vplus(vminus(vminus(*(r->start), *(cy->center)), vmult(cy->normal, vdot(cy->normal, *(r->start)))), vmult(cy->normal, vdot(cy->normal, *(cy->center))));
 
-	if (root < rc->tmin || rc->tmax < root || rvf >= cy->height / 2 || rvf <= cy->height / 2 * -1)
+	float a = vdot(ad, ad);
+	float b = 2 * vdot(ad, bd);
+	float c = vdot(bd, bd) - cy->radius * cy->radius;
+
+	float pbs = b * b - 4 * a * c;
+	if (pbs < 0)
 	{
-		GLfloat isUD = hitCylinderUD(cy, r, rc);
-		root = (-dv2 + sqrt(uvdv)) / (2 * uv2);
-		if (isUD && root > isUD)
-			return (1);
-		rvf = vdot(cy->normal, vminus(vmult(ray_dir, root), oc));
-		if (root < rc->tmin || rc->tmax < root \
-		|| rvf >= cy->height / 2 || rvf <= cy->height / 2 * -1)
-			return (0);
+		return (0);
 	}
-	rc->t = root;
-	rc->p = ray_at(r, root);
-	rc->normal = vunit(vminus(rc->p, vplus(*(cy->center), vmult(cy->normal, rvf))));
-	rc->m = cy->m;
-	rc->tmax = root;
-	t = &root;
+	else
+	{
+		root = ( -1 * b - sqrt(pbs) ) / (2 * a);
+		vector cp = vminus(ray_at(r, root), *(cy->center));
+		vector cp_ = vmult(cy->normal, vdot(cp, cy->normal));
+		if (vdot(cp_, cp_) > cy->height * cy->height / 4 || root < rc->tmin || rc->tmax < root)
+		{
+			root = ( -1 * b + sqrt(pbs) ) / (2 * a);
+			cp = vminus(ray_at(r, root), *(cy->center));
+			cp_ = vmult(cy->normal, vdot(cp, cy->normal));
+			root = (-1 * b + sqrt(pbs)) / 2 * a;
+			if (vdot(cp_, cp_) > cy->height * cy->height / 4 || root < rc->tmin || rc->tmax < root)
+			{
+				return (0);
+			}
+			else
+			{
+				rc->t = root;
+				rc->normal = vunit(vminus(cp, cp_));
+				rc->m = cy->m;
+				rc->tmax = root;
+				t = &root;
+			}
+		}
+		else
+		{
+			rc->t = root;
+			rc->normal = vunit(vminus(cp, cp_));
+			rc->m = cy->m;
+			rc->tmax = root;
+			t = &root;
+		}
+	}
 	return (1);
 }
 
-int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc, float *t)
+int tracer::rayPlaneIntersect(ray *r, plane *p, rec *rc, float *t)
 {
-	vector	oc;
-	float	root;
+	vector oc;
+	float root;
 	vector ray_dir = *(r->end);
 
 	oc = vminus(*(p->center), *(r->start));
@@ -149,14 +98,14 @@ int tracer::rayPlaneIntersect(ray* r, plane* p, rec* rc, float *t)
 	return (1);
 }
 
-
 /* raySphereIntersect */
 /* returns TRUE if ray r hits sphere s, with parameter value in t */
-int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc, float *t) {
-	point p;   /* start of transformed ray */
-	float a, b, c;  /* coefficients of quadratic equation */
-	float D;    /* discriminant */
-	point* v;
+int tracer::raySphereIntersect(ray *r, sphere *s, rec *rc, float *t)
+{
+	point p;	   /* start of transformed ray */
+	float a, b, c; /* coefficients of quadratic equation */
+	float D;	   /* discriminant */
+	point *v;
 	float root;
 
 	/* transform ray so that sphere center is at origin */
@@ -166,39 +115,45 @@ int tracer::raySphereIntersect(ray* r, sphere* s, rec* rc, float *t) {
 	p.z = r->start->z - s->c->z;
 	v = r->end; /* point to direction vector */
 
-
 	a = v->x * v->x + v->y * v->y + v->z * v->z;
 	b = 2 * (v->x * p.x + v->y * p.y + v->z * p.z);
 	c = p.x * p.x + p.y * p.y + p.z * p.z - s->r * s->r;
 
 	D = b * b - 4 * a * c;
 
-	if (D < 0) {  /* no intersection */
+	if (D < 0)
+	{ /* no intersection */
 		return (FALSE);
 	}
-	else {
+	else
+	{
 		D = static_cast<float>(sqrt(D));
 		/* First check the root with the lower value of t: */
 		/* this one, since D is positive */
 		root = (-b - D) / (2 * a);
 		/* ignore roots which are less than zero (behind viewpoint) */
-		if (root < 0) {
+		if (root < 0)
+		{
 			root = (-b + D) / (2 * a);
 		}
-		if (root < 0 || root < rc->tmin || rc->tmax < root) {return(FALSE);}
-		else{
+		if (root < 0 || root < rc->tmin || rc->tmax < root)
+		{
+			return (FALSE);
+		}
+		else
+		{
 			rc->t = root;
 			rc->p = ray_at(r, root);
 			rc->normal = vunit(vminus(rc->p, *(s->c)));
 			rc->m = s->m;
 			rc->tmax = root;
 			t = &root;
-			return(1);
+			return (1);
 		}
 	}
 }
 
-int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, plane* pl, rec* rc)
+int tracer::realHit(ray *r, sphere *s1, sphere *s2, cylinder *cy1, cylinder *cy2, plane *pl, rec *rc)
 {
 	float tmax;
 	float tmin;
@@ -206,6 +161,7 @@ int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, plane* pl, rec
 	int h2 = FALSE;
 	int h3 = FALSE;
 	int h4 = FALSE;
+	int h5 = FALSE;
 	float tmp = 0;
 	float *rt[4];
 
@@ -213,31 +169,37 @@ int tracer::realHit(ray* r, sphere* s1, sphere* s2, cylinder* cy, plane* pl, rec
 		h1 = raySphereIntersect(r, s1, rc, rt[0]);
 	if (s2 != NULL)
 		h2 = raySphereIntersect(r, s2, rc, rt[1]);
-	if (cy != NULL)
-		h3 = rayCylinderIntersect(r, cy, rc, rt[2]);
+	if (cy1 != NULL)
+		h3 = rayCylinderIntersect(r, cy1, rc, rt[2]);
+	if (cy2 != NULL)
+		h5 = rayCylinderIntersect(r, cy2, rc, rt[2]);
 	if (pl != NULL)
 		h4 = rayPlaneIntersect(r, pl, rc, rt[3]);
 
-	if (h1 && !h2 && !h3 && !h4)
+	if (h1 && !h2 && !h3 && !h4 && !h5)
 		return (1);
-	else if (h2 && !h3 && !h4)
+	else if (h2 && !h3 && !h4 && !h5)
 		return (2);
-	else if (h3 && !h4)
+	else if (h3 && !h4 && !h5)
 		return (3);
+	else if (h5 && !h4)
+		return (5);
 	else if (h4)
 		return (4);
 	else
 		return (0);
 }
 
-void tracer::findSphereNormal(sphere* s, point* p, vector* n) {
+void tracer::findSphereNormal(sphere *s, point *p, vector *n)
+{
 	n->x = (p->x - s->c->x) / s->r;
 	n->y = (p->y - s->c->y) / s->r;
 	n->z = (p->z - s->c->z) / s->r;
 	n->w = 0.0;
 }
 
-void tracer::findPlaneNormal(plane* p, vector* n) {
+void tracer::findPlaneNormal(plane *p, vector *n)
+{
 	n->x = p->normal.x;
 	n->y = p->normal.y;
 	n->z = p->normal.z;
@@ -245,7 +207,8 @@ void tracer::findPlaneNormal(plane* p, vector* n) {
 	n = &(vunit(*n));
 }
 
-void tracer::findCylinderNormal(rec* r, vector* n) {
+void tracer::findCylinderNormal(rec *r, vector *n)
+{
 	n->x = r->normal.x;
 	n->y = r->normal.y;
 	n->z = r->normal.z;
@@ -257,8 +220,9 @@ void tracer::findCylinderNormal(rec* r, vector* n) {
 /* If something is hit, returns the finite intersection point p,
    the normal vector n to the surface at that point, and the surface
    material m. If no hit, returns an infinite point (p->w = 0.0) */
-int tracer::trace(ray* r, point* p, vector* n, material** m, float tmax) {
-	rec* record;
+int tracer::trace(ray *r, point *p, vector *n, material **m, float tmax)
+{
+	rec *record;
 	int hit = FALSE;
 
 	record = new rec();
@@ -266,32 +230,44 @@ int tracer::trace(ray* r, point* p, vector* n, material** m, float tmax) {
 	record->tmin = 0.000000001;
 	record->tmax = tmax;
 
-	hit = realHit(r, s1, s2, cy, pl, record);
-	if (hit == 1) {
+	hit = realHit(r, s1, s2, cy1, cy2, pl, record);
+	if (hit == 1)
+	{
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findSphereNormal(s1, p, n);
 		return (1);
 	}
-	else if (hit == 2) {
+	else if (hit == 2)
+	{
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findSphereNormal(s2, p, n);
 		return (2);
 	}
-	else if (hit == 3) {
+	else if (hit == 3)
+	{
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findCylinderNormal(record, n);
 		return (3);
 	}
-	else if (hit == 4) {
+	else if (hit == 5)
+	{
+		*m = record->m;
+		findPointOnRay(r, record->t, p);
+		findCylinderNormal(record, n);
+		return (5);
+	}
+	else if (hit == 4)
+	{
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findPlaneNormal(pl, n);
 		return (4);
 	}
-	else {
+	else
+	{
 		/* indicates nothing was hit */
 		p->w = 0.0;
 		return (0);
