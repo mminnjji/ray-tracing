@@ -63,7 +63,6 @@ int shader::isShadow(light l, point p)
 }
 
 /* shade */
-/* color of point p with normal vector n and material m returned in c */
 void shader::shade(point* p, vector* n, material* m, color* c, light* l, point* c_origin, int max_depth) {
     // 결과 조명을 저장할 컬러
     color light_color = {0, 0, 0};

@@ -32,28 +32,47 @@ GLubyte *raytrace::display(void)
 
 void raytrace::initScene()
 {
-	s1 = makeSphere(-0.4, 0.0, -3.0, 0.2);
+	// 빨간색 구 (오)
+	s1 = makeSphere(-0.3, -0.1, -3.0, 0.3); // 왼오(-(오) + (왼)) 위아래(-(위) +아래) 앞뒤 ( -(뒤) +(앞))
 	s1->m = shader.makeMaterial(1.0, 0.1, 0.0, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
-	s2 = makeSphere(0.5, -0.5, -5, 0.5);
-	s2->m = shader.makeMaterial(0.45, 0.75, 0.85, 0.1, 0.7, 0.5, 50, 0, 1.33, 1);
+	// 초록색 구 (왼 - 반사사)
+	s2 = makeSphere(0.4, -0.3, -3.2, 0.2);
+	s2->m = shader.makeMaterial(0.1, 0.75, 0.1, 0.1, 0.7, 0.5, 50, 0.5, 1.0, 0);
+	// 노란색 구 (오른쪽 앞 - 굴절)
+	s3 = makeSphere(-0.1, 0.02, -2.5, 0.12);
+	s3->m = shader.makeMaterial(0.9, 0.8, 0.0, 0.1, 0.7, 0.5, 50, 0, 1.33, 0.9);
+	// 하늘색 평면 (아래)
 	pl = makePlane(0.0, 0.2, -2.0, *(makePoint(0, -1, 0, 0)));
-	pl->m = shader.makeMaterial(0.4118, 0.5020, 0.6078, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
-	cy1 = makeCylinder(0.0, -0.1, -2.0, 0.1, *(makePoint(-1, -1, -1, 0)), 0.3);
-	cy1->m = shader.makeMaterial(0.0, 0.5, 0.1, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
-	cy2 = makeCylinder(0.35, -0.1, -2, 0.15, *(makePoint(1, -1, 1, 0)), 0.1);
-	cy2->m = shader.makeMaterial(0.0, 0.75, 0.85, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
+	pl->m = shader.makeMaterial(0.0, 0.6, 0.9, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
+	// 주황색 실린더
+	cy1 = makeCylinder(0.3, 0.0, -2.0, 0.08, *(makePoint(-1, 0.5, 0.5, 0)), 0.25);
+	cy1->m = shader.makeMaterial(0.7, 0.5, 0.0, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
+	// 분홍색 실린더 
+	cy2 = makeCylinder(-0.4, 0.0, -2.5, 0.1, *(makePoint(-1, -1, 0, 0)), 0.2);
+	cy2->m = shader.makeMaterial(1.0, 0.64, 0.70, 0.1, 0.7, 0.5, 50, 0, 1.0, 0);
+
+	// 일부 객체를 지우고 싶을 때 널값으로 설정정
+	// pl = NULL;
+	// s1 = NULL;
+	// s2 = NULL;
+	// s3 = NULL;
+	// cy1 = NULL;
+	// cy2 = NULL;
 
 	tracer.s1 = s1;
 	tracer.s2 = s2;
+	tracer.s3 = s3;
 	tracer.pl = pl;
 	tracer.cy1 = cy1;
 	tracer.cy2 = cy2;
 	shader.s1 = s1;
 	shader.s2 = s2;
+	shader.s3 = s3;
 	shader.pl = pl;
 	shader.cy1 = cy1;
 	shader.cy2 = cy2;
 	shader.tracer.s1 = s1;
+	shader.tracer.s3 = s3;
 	shader.tracer.s2 = s2;
 	shader.tracer.cy1 = cy1;
 	shader.tracer.cy2 = cy2;
@@ -233,23 +252,32 @@ void raytrace::rayColor(ray *r, color *c, int max_depth)
 				GLfloat cos_theta_i = vdot(*(r->end), n);
 
 				vector N_corrected = n;
-				if (cos_theta_i > 0)
-				{ // 내부에서 외부로 나가는 경우
+				if (cos_theta_i > 0.0) // 내부에서 외부로 나가는 경우
+				{
 					eta = m->refractive_index;
 					eta_prime = 1.0;
 					N_corrected = vmult(n, -1.0); // 법선 반전
 				}
+				else
+				{
+					cos_theta_i = -cos_theta_i; // 음수를 양수로 변경
+				}
+
+				// 굴절 방향 계산
 				vector refract_dir = refract(*(r->end), N_corrected, eta, eta_prime);
 
-				if (!(refract_dir.x == 0 && refract_dir.y == 0 && refract_dir.z == 0)) // 전반사가 아닌 경우
+				// 전반사가 아닌 경우에만 처리
+				if (!(refract_dir.x == 0 && refract_dir.y == 0 && refract_dir.z == 0))
 				{
 					ray refractR;
-					GLfloat epsilon = 0.001;			// 자기 교차 방지
-					vector offset = vmult(n, -epsilon); // 물체 내부로 이동
+					GLfloat epsilon = 0.001;					  // 자기 교차 방지
+					vector offset = vmult(N_corrected, -epsilon); // 굴절 시작점 이동
 					point refract_start = vplus(p, offset);
 
 					refractR.start = &refract_start;
 					refractR.end = &refract_dir;
+
+					// 재귀 호출
 					rayColor(&refractR, &refractC, max_depth - 1);
 				}
 			}
@@ -272,9 +300,24 @@ void raytrace::rayColor(ray *r, color *c, int max_depth)
 				// 재귀 호출
 				rayColor(&newR, &rC, max_depth - 1);
 			}
-			c->r = c->r * (1 - m->transparency - m->reflectivity) + refractC.r * m->transparency + rC.r * m->reflectivity;
-			c->g = c->g * (1 - m->transparency - m->reflectivity) + refractC.g * m->transparency + rC.g * m->reflectivity;
-			c->b = c->b * (1 - m->transparency - m->reflectivity) + refractC.b * m->transparency + rC.b * m->reflectivity;
+			// 비율 합이 1을 초과하지 않도록 조정
+			GLfloat total_ratio = m->transparency + m->reflectivity;
+
+			GLfloat transparency_ratio = m->transparency;
+			GLfloat reflectivity_ratio = m->reflectivity;
+
+			if (total_ratio > 1.0)
+			{
+				transparency_ratio /= total_ratio; // 비율 재조정
+				reflectivity_ratio /= total_ratio;
+			}
+
+			// 색상 혼합
+			c->r = c->r * (1.0 - transparency_ratio - reflectivity_ratio) + refractC.r * transparency_ratio + rC.r * reflectivity_ratio;
+
+			c->g = c->g * (1.0 - transparency_ratio - reflectivity_ratio) + refractC.g * transparency_ratio + rC.g * reflectivity_ratio;
+
+			c->b = c->b * (1.0 - transparency_ratio - reflectivity_ratio) + refractC.b * transparency_ratio + rC.b * reflectivity_ratio;
 		}
 	}
 	else

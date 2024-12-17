@@ -212,42 +212,48 @@ int tracer::raySphereIntersect(ray *r, sphere *s, rec *rc )
 	}
 }
 
-int tracer::realHit(ray *r, sphere *s1, sphere *s2, cylinder *cy1, cylinder *cy2, plane *pl, rec *rc)
+int tracer::realHit(ray *r, sphere *s1, sphere *s2, sphere *s3, cylinder *cy1, cylinder *cy2, plane *pl, rec *rc)
 {
-	int h1 = FALSE;
-	int h2 = FALSE;
-	int h3 = FALSE;
-	int h3_ = FALSE;
-	int h4 = FALSE;
-	int h5 = FALSE;
-	int h5_ = FALSE;
+    int h1 = FALSE, h2 = FALSE, h3 = FALSE, h3_ = FALSE;
+    int h4 = FALSE, h5 = FALSE, h5_ = FALSE, h6 = FALSE, h6_ = FALSE;
 
-	if (s1 != NULL)
-		h1 = raySphereIntersect(r, s1, rc);
-	if (s2 != NULL)
-		h2 = raySphereIntersect(r, s2, rc);
-	if (cy1 != NULL)
-		h3 = rayCylinderIntersect(r, cy1, rc);
-		h3_ = rayCylinderUDIntersect(r, cy1, rc);
-	if (cy2 != NULL)
-		h5 = rayCylinderIntersect(r, cy2, rc);
-		h5_ = rayCylinderUDIntersect(r, cy2, rc);
-	if (pl != NULL)
-		h4 = rayPlaneIntersect(r, pl, rc);
+    // 각 객체와의 교차 여부를 판별
+    if (s1 != NULL) h1 = raySphereIntersect(r, s1, rc);
+    if (s2 != NULL) h2 = raySphereIntersect(r, s2, rc);
+    if (s3 != NULL) h3 = raySphereIntersect(r, s3, rc);
+    if (cy1 != NULL) {
+        h5 = rayCylinderIntersect(r, cy1, rc);
+        h5_ = rayCylinderUDIntersect(r, cy1, rc);
+    }
+    if (cy2 != NULL) {
+        h6 = rayCylinderIntersect(r, cy2, rc);
+        h6_ = rayCylinderUDIntersect(r, cy2, rc);
+    }
+	if (pl != NULL) h4 = rayPlaneIntersect(r, pl, rc);
 
-	if (h1 && !h2 && !h3 && !h3_ && !h5 && !h5_ && !h4)
-		return (1);
-	else if (h2 && !h3 && !h3_ && !h5 && !h5_ && !h4)
-		return (2);
-	else if ((h3 && !h3_ && !h5 && !h5_ && !h4) || (h3_ && !h5 && !h5_ && !h4))
-		return (3);
-	else if((h5 && !h5_ && !h4) || (h5_ && !h4))
-		return (5);
-	else if (h4)
-		return (4);
-	else 
-		return (0);
+    // 뒤에 나오는 조건들이 false인지 확인
+    if (h1) {
+        if (!h2 && !h3 && !h3_ && !h4 && !h5 && !h5_ && !h6 && !h6_) return 1;
+    }
+    if (h2) {
+        if (!h3 && !h3_ && !h4 && !h5 && !h5_ && !h6 && !h6_) return 2;
+    }
+    if (h3 || h3_) {
+        if (!h4 && !h5 && !h5_ && !h6 && !h6_) return 3;
+    }
+    if (h5 || h5_) {
+        if (!h6 && !h6_ && !h4) return 5;
+    }
+    if (h6 || h6_) {
+        if (!h4) return 6;
+    }
+    if (h4) {
+        return 4; // plane은 마지막 객체이므로 따로 검사 필요 없음
+    }
+
+    return 0; // 교차하는 객체 없음
 }
+
 
 void tracer::findSphereNormal(sphere *s, point *p, vector *n)
 {
@@ -289,7 +295,7 @@ int tracer::trace(ray *r, point *p, vector *n, material **m, float tmax)
 	record->tmin = 0;
 	record->tmax = tmax;
 
-	hit = realHit(r, s1, s2, cy1, cy2, pl, record);
+	hit = realHit(r, s1, s2, s3, cy1, cy2, pl, record);
 	if (hit == 1)
 	{
 		*m = record->m;
@@ -306,19 +312,19 @@ int tracer::trace(ray *r, point *p, vector *n, material **m, float tmax)
 	{
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
-		findCylinderNormal(record, n);
-	}
-	else if (hit == 5)
-	{
-		*m = record->m;
-		findPointOnRay(r, record->t, p);
-		findCylinderNormal(record, n);
+		findSphereNormal(s3, p, n);
 	}
 	else if (hit == 4)
 	{
 		*m = record->m;
 		findPointOnRay(r, record->t, p);
 		findPlaneNormal(pl, n);
+	}
+	else if (hit == 5 || hit == 6)
+	{
+		*m = record->m;
+		findPointOnRay(r, record->t, p);
+		findCylinderNormal(record, n);
 	}
 	else
 	{
