@@ -173,13 +173,13 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\Users\pureh\ray-tracing\build\3.model_loading__hw7.vcxproj">
-      <Project>{7ECD9B56-1BBC-3BF0-943A-66A43C2764F2}</Project>
-      <Name>3.model_loading__hw7</Name>
-    </ProjectReference>
     <ProjectReference Include="C:\Users\pureh\ray-tracing\build\GLAD.vcxproj">
       <Project>{D0C34D1E-248F-39B0-9277-F3ED94F8932A}</Project>
       <Name>GLAD</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\pureh\ray-tracing\build\HW07__hw7.vcxproj">
+      <Project>{C4490070-61AD-314B-8710-8FAF7B78FB5C}</Project>
+      <Name>HW07__hw7</Name>
     </ProjectReference>
     <ProjectReference Include="C:\Users\pureh\ray-tracing\build\STB_IMAGE.vcxproj">
       <Project>{B6B645B0-F730-37C7-9A06-42D8E989C173}</Project>

@@ -86,7 +86,7 @@ CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 CMAKE_FIND_PACKAGE_REDIRECTS_DIR:STATIC=C:/Users/pureh/ray-tracing/build/CMakeFiles/pkgRedirects
 
 //Install path prefix, prepended onto install directories.
-CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/SimpleRayTracer
+CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/My-Ray-Tracing
 
 //Path to a program.
 CMAKE_LINKER:FILEPATH=C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/link.exe
@@ -121,22 +121,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=LearnOpenGL
-
-//Value Computed by CMake
-CMAKE_PROJECT_VERSION:STATIC=1.0
-
-//Value Computed by CMake
-CMAKE_PROJECT_VERSION_MAJOR:STATIC=1
-
-//Value Computed by CMake
-CMAKE_PROJECT_VERSION_MINOR:STATIC=0
-
-//Value Computed by CMake
-CMAKE_PROJECT_VERSION_PATCH:STATIC=
-
-//Value Computed by CMake
-CMAKE_PROJECT_VERSION_TWEAK:STATIC=
+CMAKE_PROJECT_NAME:STATIC=My-Ray-Tracing
 
 //RC compiler
 CMAKE_RC_COMPILER:FILEPATH=rc
@@ -215,38 +200,17 @@ GLFW3_INCLUDE_DIR:PATH=C:/Users/pureh/ray-tracing/includes
 //Path to a library.
 GLFW3_LIBRARY:FILEPATH=C:/Users/pureh/ray-tracing/lib/glfw3.lib
 
-//The directory containing a CMake configuration file for GLM.
-GLM_DIR:PATH=GLM_DIR-NOTFOUND
-
 //Path to a file.
 GLM_INCLUDE_DIR:PATH=C:/Users/pureh/ray-tracing/includes
 
 //Value Computed by CMake
-LearnOpenGL_BINARY_DIR:STATIC=C:/Users/pureh/ray-tracing/build
+My-Ray-Tracing_BINARY_DIR:STATIC=C:/Users/pureh/ray-tracing/build
 
 //Value Computed by CMake
-LearnOpenGL_IS_TOP_LEVEL:STATIC=ON
+My-Ray-Tracing_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
-LearnOpenGL_SOURCE_DIR:STATIC=C:/Users/pureh/ray-tracing
-
-//OpenGL library for win32
-OPENGL_gl_LIBRARY:STRING=opengl32
-
-//GLU library for win32
-OPENGL_glu_LIBRARY:STRING=glu32
-
-//Value Computed by CMake
-SimpleRayTracer_BINARY_DIR:STATIC=C:/Users/pureh/ray-tracing/build
-
-//Value Computed by CMake
-SimpleRayTracer_IS_TOP_LEVEL:STATIC=ON
-
-//Value Computed by CMake
-SimpleRayTracer_SOURCE_DIR:STATIC=C:/Users/pureh/ray-tracing
-
-//The directory containing a CMake configuration file for glfw3.
-glfw3_DIR:PATH=glfw3_DIR-NOTFOUND
+My-Ray-Tracing_SOURCE_DIR:STATIC=C:/Users/pureh/ray-tracing
 
 
 ########################
@@ -383,10 +347,4 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 FIND_PACKAGE_MESSAGE_DETAILS_GLFW3:INTERNAL=[C:/Users/pureh/ray-tracing/lib/glfw3.lib][C:/Users/pureh/ray-tracing/includes][v()]
 //Details about finding GLM
 FIND_PACKAGE_MESSAGE_DETAILS_GLM:INTERNAL=[C:/Users/pureh/ray-tracing/includes][v()]
-//Details about finding OpenGL
-FIND_PACKAGE_MESSAGE_DETAILS_OpenGL:INTERNAL=[opengl32][c ][v()]
-//ADVANCED property for variable: OPENGL_gl_LIBRARY
-OPENGL_gl_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OPENGL_glu_LIBRARY
-OPENGL_glu_LIBRARY-ADVANCED:INTERNAL=1
 
